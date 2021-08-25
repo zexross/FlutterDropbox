@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 
 
 /** DropboxPlugin */
@@ -64,6 +65,7 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
   private static final String CHANNEL_NAME = "dropbox";
   private static Activity activity;
   private MethodChannel channel;
+  private final static boolean USE_SLT = true;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
@@ -158,7 +160,11 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
       result.success(true);
 
     } else if (call.method.equals("authorize")) {
-      Auth.startOAuth2Authentication(DropboxPlugin.activity , appInfo.getKey());
+      if (USE_SLT) {
+            Auth.startOAuth2PKCE(DropboxPlugin.activity, appInfo.getKey(), DbxRequestConfigFactory.getRequestConfig(), Arrays.asList("account_info.read", "account_info.write", "files.content.write", "files.content.read", "files.metadata.write", "files.metadata.read"));
+        } else {
+            Auth.startOAuth2Authentication(DropboxPlugin.activity , appInfo.getKey());
+        }
       result.success(true);
 
     } else if (call.method.equals("authorizeWithAccessToken")) {
