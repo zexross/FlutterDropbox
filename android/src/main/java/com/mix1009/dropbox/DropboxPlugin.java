@@ -197,6 +197,7 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
       accessToken = null;
       AuthActivity.result = null;
       // call DbxUserAuthRequests.tokenRevoke(); ?
+      result.success(true);
 
     } else if (call.method.equals("finishAuth")) {
       String code = call.argument("code");
