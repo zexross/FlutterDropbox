@@ -63,7 +63,7 @@ class _HomeState extends State<Home> {
     }
     if (authorize) {
       if (accessToken != null && accessToken!.isNotEmpty) {
-        await Dropbox.authorizeWithAccessToken(accessToken!);
+        await Dropbox.authorizeWithCredential(accessToken!);
         final token = await Dropbox.getAccessToken();
         if (token != null) {
           print('authorizeWithAccessToken!');
@@ -87,7 +87,7 @@ class _HomeState extends State<Home> {
   }
 
   Future authorizeWithAccessToken() async {
-    await Dropbox.authorizeWithAccessToken(accessToken!);
+    await Dropbox.authorizeWithCredential(accessToken!);
   }
 
   Future deleteAccessToken() async {

@@ -34,6 +34,6 @@ android {
 }
 
 dependencies {
-    implementation 'com.dropbox.core:dropbox-core-sdk:4.0.0'
+    implementation 'com.dropbox.core:dropbox-core-sdk:4.0.1'
     api 'com.squareup.okhttp3:okhttp:4.4.0'
 }

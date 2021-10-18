@@ -28,6 +28,8 @@ import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.DbxWebAuth;
 import com.dropbox.core.android.Auth;
 import com.dropbox.core.android.AuthActivity;
+import com.dropbox.core.json.JsonReadException;
+import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.util.IOUtil;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.auth.DbxUserAuthRequests;
@@ -120,22 +122,23 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
   protected static DbxRequestConfig sDbxRequestConfig;
   protected static DbxClientV2 client;
   protected static DbxWebAuth webAuth;
-  protected static String accessToken;
+  protected static String serailizedCredental;
   protected static String clientId;
   protected static DbxAppInfo appInfo;
 
   boolean checkClient(Result result) {
     if (client == null) {
-      String authToken = Auth.getOAuth2Token();
+      DbxCredential credential = Auth.getDbxCredential();
 
-      if (authToken != null) {
+      if (credential != null) {
+        credential = new DbxCredential(credential.getAccessToken(), -1L, credential.getRefreshToken(), credential.getAppKey());
+
         sDbxRequestConfig = DbxRequestConfig.newBuilder(this.clientId)
-                .withHttpRequestor(new OkHttp3Requestor(OkHttp3Requestor.defaultOkHttpClient()))
-                .build();
+              .withHttpRequestor(new OkHttp3Requestor(OkHttp3Requestor.defaultOkHttpClient()))
+              .build();
 
-        client = new DbxClientV2(sDbxRequestConfig, authToken);
-
-        this.accessToken = authToken;
+        client = new DbxClientV2(sDbxRequestConfig, credential);
+        this.serailizedCredental = credential.toString();
         return true;
       }
       result.error("error", "client not logged in", null);
@@ -167,17 +170,25 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
         }
       result.success(true);
 
-    } else if (call.method.equals("authorizeWithAccessToken")) {
-      String argAccessToken = call.argument("accessToken");
+    } else if (call.method.equals("authorizeWithCredential")) {
+      String argCredential = call.argument("credential");
 
-      sDbxRequestConfig = DbxRequestConfig.newBuilder(this.clientId)
-              .withHttpRequestor(new OkHttp3Requestor(OkHttp3Requestor.defaultOkHttpClient()))
-              .build();
+      DbxCredential credential = null;
+      try {
+        credential = DbxCredential.Reader.readFully(argCredential);
 
-      client = new DbxClientV2(sDbxRequestConfig, argAccessToken);
+        credential = new DbxCredential(credential.getAccessToken(), -1L, credential.getRefreshToken(), credential.getAppKey());
 
-      this.accessToken = argAccessToken;
-      result.success(true);
+        sDbxRequestConfig = DbxRequestConfig.newBuilder(this.clientId)
+                .withHttpRequestor(new OkHttp3Requestor(OkHttp3Requestor.defaultOkHttpClient()))
+                .build();
+
+        client = new DbxClientV2(sDbxRequestConfig, credential);
+        this.serailizedCredental = argCredential;
+        result.success(true);
+      } catch (JsonReadException e) {
+        result.error("error", e.getMessage(), "Credential data corrupted: ");
+      }
 
     } else if (call.method.equals("getAuthorizeUrl")) {
 
@@ -194,9 +205,9 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
 
     } else if (call.method.equals("unlink")) {
       client = null;
-      accessToken = null;
+      serailizedCredental = null;
       AuthActivity.result = null;
-      // call DbxUserAuthRequests.tokenRevoke(); ?
+      // call DbxUserAuthRequests.tokenRevoke();
       result.success(true);
 
     } else if (call.method.equals("finishAuth")) {
@@ -222,12 +233,11 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
       (new TemporaryLinkTask(result)).execute(path);
 
     } else if (call.method.equals("getAccessToken")) {
-//      result.success(accessToken);
-      String token = Auth.getOAuth2Token();
-      if (token == null) {
-        token = this.accessToken;
+      String credential = Auth.getDbxCredential().toString();
+      if (credential == null) {
+        credential = this.serailizedCredental;
       }
-      result.success(token);
+      result.success(credential);
     } else if (call.method.equals("upload")) {
       String filepath = call.argument("filepath");
       String dropboxpath = call.argument("dropboxpath");
@@ -273,7 +283,7 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
       String accessToken = authFinish.getAccessToken();
 
       DropboxPlugin.client = new DbxClientV2(DropboxPlugin.sDbxRequestConfig, accessToken);
-      DropboxPlugin.accessToken = accessToken;
+      DropboxPlugin.serailizedCredental = accessToken;
 
       return accessToken;
   }
@@ -342,14 +352,9 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
               map.put("filesize", fileMetadata.getSize());
               map.put("clientModified", df.format(fileMetadata.getClientModified()));
               map.put("serverModified", df.format(fileMetadata.getServerModified()));
-//            } else if (metadata instanceof FolderMetadata){
-//              FolderMetadata folderMetadata = (FolderMetadata) metadata;
-
-
             }
 
             paths.add(map);
-//            paths.add(metadata.getPathLower());
           }
 
           if (!listFolderResult.getHasMore()) {
