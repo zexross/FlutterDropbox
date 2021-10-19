@@ -187,7 +187,7 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
         this.serailizedCredental = argCredential;
         result.success(true);
       } catch (JsonReadException e) {
-        result.error("error", e.getMessage(), "Credential data corrupted: ");
+        result.error("error","Credential data corrupted: ", e.getMessage());
       }
 
     } else if (call.method.equals("getAuthorizeUrl")) {
@@ -233,11 +233,13 @@ public class DropboxPlugin implements FlutterPlugin, MethodCallHandler, Activity
       (new TemporaryLinkTask(result)).execute(path);
 
     } else if (call.method.equals("getAccessToken")) {
-      String credential = Auth.getDbxCredential().toString();
-      if (credential == null) {
-        credential = this.serailizedCredental;
+      DbxCredential credential = Auth.getDbxCredential();
+      if (credential != null) {
+        this.serailizedCredental = credential.toString();
+        result.success(credential.toString());
+      } else {
+        result.success(null);
       }
-      result.success(credential);
     } else if (call.method.equals("upload")) {
       String filepath = call.argument("filepath");
       String dropboxpath = call.argument("dropboxpath");
