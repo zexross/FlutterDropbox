@@ -67,7 +67,7 @@ FlutterMethodChannel* channel;
 
   } else if ([@"authorize" isEqualToString:call.method]) {
 
-      [DBClientsManager authorizeFromController:[UIApplication sharedApplication]
+      [DBClientsManager authorizeFromControllerV2:[UIApplication sharedApplication]
                                      controller:[[self class] topMostController]
                                         openURL:^(NSURL *url) {
                                           NSLog(@"url = %@" , [url absoluteString]);
