@@ -67,12 +67,17 @@ FlutterMethodChannel* channel;
 
   } else if ([@"authorize" isEqualToString:call.method]) {
 
+      DBScopeRequest *scopeRequest = [[DBScopeRequest alloc] initWithScopeType:DBScopeTypeUser
+                                                                    scopes:@[@"account_info.read", @"account_info.write", @"files.content.write", @"files.content.read", @"files.metadata.write", @"files.metadata.read"]
+                                                      includeGrantedScopes:NO];
       [DBClientsManager authorizeFromControllerV2:[UIApplication sharedApplication]
                                      controller:[[self class] topMostController]
+                                     loadingStatusDelegate: nil
                                         openURL:^(NSURL *url) {
                                           NSLog(@"url = %@" , [url absoluteString]);
-                                          [[UIApplication sharedApplication] openURL:url];
-                                        }];
+                                          [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                                        }
+                                        scopeRequest: scopeRequest];
       result([NSNumber numberWithBool:TRUE]);
       
   } else if ([@"getAuthorizeUrl" isEqualToString:call.method]) {
@@ -172,7 +177,7 @@ FlutterMethodChannel* channel;
       NSError* error = nil;
       NSData* fileData = [NSData dataWithContentsOfFile:filepath  options:0 error:&error];
 
-      [[[client.filesRoutes uploadData:dropboxpath mode:mode autorename:@(YES) clientModified:nil mute:@(NO) propertyGroups:nil strictConflict: nil inputData:fileData]
+      [[[client.filesRoutes uploadData:dropboxpath mode:mode autorename:@(YES) clientModified:nil mute:@(NO) propertyGroups:nil strictConflict:nil contentHash:nil inputData:fileData]
         setResponseBlock:^(DBFILESFileMetadata *dResult, DBFILESUploadError *routeError, DBRequestError *networkError) {
           if (dResult) {
               NSLog(@"%@\n", dResult);
